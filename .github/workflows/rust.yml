@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, actions-caching ]
   pull_request:
     branches: [ master ]
 
@@ -16,14 +16,36 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Login to Heroku Container registry
-      env: 
+      env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       run: heroku container:login
+
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      id: cache-docker
+      with:
+        path: /tmp/docker-save
+        # Key is named differently to avoid collision
+        key: ${{ runner.os }}-docker-${{ hashFiles('Cargo.lock') }}-${{ hashFiles('Dockerfile') }}
+        restore-keys: |
+          ${{ runner.os }}-docker
+
+    - run: docker load -i /tmp/docker-save/snapshot.tar || true
+      if: steps.cache-docker.outputs.cache-hit == 'true'
+
     - name: Build and push to Heroku
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       run: heroku container:push -a cb-rust-demo web
+
+    - run: |
+        mkdir -p /tmp/docker-save
+        docker save registry.heroku.com/cb-rust-demo/web -o /tmp/docker-save/snapshot.tar
+        ls -lh /tmp/docker-save || true
+      if: always() && steps.cache-docker.outputs.cache-hit != 'true'
+
     - name: Release
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}

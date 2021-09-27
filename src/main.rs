@@ -1,9 +1,10 @@
+use std::sync::Mutex;
+
 use actix_files::Files;
 use actix_web::{
     web::{self, Data},
     App, HttpServer, Responder,
 };
-use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 struct Hours {

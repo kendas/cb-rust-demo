@@ -35,6 +35,9 @@ jobs:
     - run: docker load -i /tmp/docker-save/snapshot.tar || true
       if: steps.cache-docker.outputs.cache-hit == 'true'
 
+    - name: Build first stage
+      run: docker build -t build --target build .
+
     - name: Build and push to Heroku
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
@@ -42,7 +45,7 @@ jobs:
 
     - run: |
         mkdir -p /tmp/docker-save
-        docker save registry.heroku.com/cb-rust-demo/web -o /tmp/docker-save/snapshot.tar
+        docker save build -o /tmp/docker-save/snapshot.tar
         ls -lh /tmp/docker-save || true
       if: always() && steps.cache-docker.outputs.cache-hit != 'true'
 

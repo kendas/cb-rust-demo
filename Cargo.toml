@@ -2,6 +2,9 @@
 name = "cb-rust-demo"
 version = "0.1.0"
 edition = "2018"
+authors = ["Kaarel Ratas", "Ilja Tolliu"]
+repository = "https://github.com/kendas/cb-rust-demo/"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

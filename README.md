@@ -5,7 +5,7 @@ TEX at Codeborne offices.
 
 ## API Documentation
 
-SwaggerUI that you can play with is available at [http://cb-rust-demo.herokuapp.com/openapi/index.html#/default/get_hours](http://cb-rust-demo.herokuapp.com/openapi/index.html#/default/get_hours)
+SwaggerUI that you can play with is available at [http://cb-rust-demo.herokuapp.com/openapi/index.html](http://cb-rust-demo.herokuapp.com/openapi/index.html)
 
 ## Local environment setup
 

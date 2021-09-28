@@ -3,6 +3,10 @@
 This is a demonstration of Rust in the context of web applications (to be) presented at
 TEX at Codeborne offices.
 
+## API Documentation
+
+SwaggerUI that you can play with is available at [http://cb-rust-demo.herokuapp.com/openapi/index.html#/default/get_hours](http://cb-rust-demo.herokuapp.com/openapi/index.html#/default/get_hours)
+
 ## Local environment setup
 
 The application will run on port 8080.

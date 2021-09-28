@@ -5,10 +5,11 @@ use actix_web::{
     web::{self, Data},
     App, HttpServer, Responder,
 };
+use uuid::Uuid;
 
 #[derive(Debug)]
 struct Hours {
-    id: String,
+    id: Uuid,
     employee: String,
     project: String,
     story_id: Option<String>,
@@ -19,7 +20,7 @@ struct Hours {
 async fn db_test(db: Data<Db>) -> impl Responder {
     let mut guard = db.lock().unwrap();
     guard.push(Hours {
-        id: "".into(),
+        id: Uuid::new_v4(),
         employee: "".into(),
         project: "".into(),
         story_id: None,

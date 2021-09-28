@@ -33,7 +33,6 @@ jobs:
           ${{ runner.os }}-docker
 
     - run: docker load -i /tmp/docker-save/snapshot.tar || true
-      if: steps.cache-docker.outputs.cache-hit == 'true'
 
     - name: Build first stage
       run: docker build -t build --target build .
@@ -43,11 +42,10 @@ jobs:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
       run: heroku container:push -a cb-rust-demo web
 
-    - run: |
-        mkdir -p /tmp/docker-save
-        docker save build -o /tmp/docker-save/snapshot.tar
+    - run: >
+        mkdir -p /tmp/docker-save &&
+        docker save build -o /tmp/docker-save/snapshot.tar &&
         ls -lh /tmp/docker-save || true
-      if: always() && steps.cache-docker.outputs.cache-hit != 'true'
 
     - name: Release
       env:

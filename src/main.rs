@@ -27,8 +27,7 @@ async fn db_test(db: Data<Db>) -> impl Responder {
         description: "".into(),
         hours: 0,
     });
-    println!("{:?}", guard);
-    format!("Welcome {}!", "here")
+    format!("Welcome, the database contains {:?}", guard)
 }
 
 type Db = Mutex<Vec<Hours>>;
@@ -37,7 +36,7 @@ type Db = Mutex<Vec<Hours>>;
 async fn main() -> std::io::Result<()> {
     let db: Data<Db> = Data::new(Default::default());
 
-    let port = std::env::var("PORT").unwrap_or("8080".into());
+    let port = std::env::var("PORT").unwrap_or("8080".to_string());
     let bind_address = format!("0.0.0.0:{}", port);
     HttpServer::new(move || {
         App::new()

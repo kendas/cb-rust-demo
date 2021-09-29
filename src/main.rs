@@ -1,14 +1,12 @@
 use std::sync::Mutex;
 
 use actix_files::Files;
-use actix_web::{
-    web::{self, Data},
-    App, HttpServer, HttpResponse
-};
+use actix_web::{http::header, web, web::Data, App, HttpResponse, HttpServer};
+use serde::Serialize;
+use std::ops::Deref;
 use uuid::Uuid;
 
-
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct Hours {
     id: Uuid,
     employee: String,
@@ -29,8 +27,15 @@ async fn db_test(db: Data<Db>) -> HttpResponse {
         hours: 0,
     });
     let response_body = format!("Welcome, the database contains {:?}", guard);
+    return HttpResponse::Ok().body(response_body);
+}
+
+async fn list_all_logged_hours(db: Data<Db>) -> HttpResponse {
+    let guard = db.lock().unwrap();
+    let hours = guard.deref();
     return HttpResponse::Ok()
-        .body(response_body);
+        .header(header::CONTENT_TYPE, "application/json")
+        .json2(hours);
 }
 
 type Db = Mutex<Vec<Hours>>;
@@ -45,6 +50,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(db.clone())
             .route("/", web::get().to(db_test))
+            .service(web::scope("/api").route("/hours", web::get().to(list_all_logged_hours)))
             .service(Files::new("/openapi", "./openapi/").show_files_listing())
     })
     .bind(bind_address)?

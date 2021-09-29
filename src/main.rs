@@ -3,9 +3,10 @@ use std::sync::Mutex;
 use actix_files::Files;
 use actix_web::{
     web::{self, Data},
-    App, HttpServer, Responder,
+    App, HttpServer, HttpResponse
 };
 use uuid::Uuid;
+
 
 #[derive(Debug)]
 struct Hours {
@@ -17,7 +18,7 @@ struct Hours {
     hours: i16,
 }
 
-async fn db_test(db: Data<Db>) -> impl Responder {
+async fn db_test(db: Data<Db>) -> HttpResponse {
     let mut guard = db.lock().unwrap();
     guard.push(Hours {
         id: Uuid::new_v4(),
@@ -27,7 +28,9 @@ async fn db_test(db: Data<Db>) -> impl Responder {
         description: "".into(),
         hours: 0,
     });
-    format!("Welcome, the database contains {:?}", guard)
+    let response_body = format!("Welcome, the database contains {:?}", guard);
+    return HttpResponse::Ok()
+        .body(response_body);
 }
 
 type Db = Mutex<Vec<Hours>>;

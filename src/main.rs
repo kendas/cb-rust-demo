@@ -65,10 +65,10 @@ async fn get_single_hours_entry(
 ) -> HttpResponse {
     let guard = db.lock().unwrap();
     let result = guard.iter().find(|&h| h.id == id);
-    if let Some(hours) = result {
-        return HttpResponse::Ok().json(hours);
+    match result {
+        Some(hours) => HttpResponse::Ok().json(hours),
+        None => HttpResponse::NotFound().body(id.to_string()),
     }
-    return HttpResponse::NotFound().body(id.to_string());
 }
 
 async fn log_hours(db: Data<Db>, json: web::Json<NewHours>) -> HttpResponse {
@@ -83,11 +83,13 @@ async fn log_hours(db: Data<Db>, json: web::Json<NewHours>) -> HttpResponse {
 async fn delete_logged_hours(web::Path(id): web::Path<uuid::Uuid>, db: Data<Db>) -> HttpResponse {
     let mut guard = db.lock().unwrap();
     let result = guard.iter().position(|h| h.id == id);
-    if let Some(hours_index) = result {
-        guard.remove(hours_index);
-        return HttpResponse::NoContent().finish();
+    match result {
+        Some(hours_index) => {
+            guard.remove(hours_index);
+            return HttpResponse::NoContent().finish();
+        }
+        None => HttpResponse::NotFound().body(id.to_string()),
     }
-    return HttpResponse::NotFound().body(id.to_string());
 }
 
 type Db = Mutex<Vec<Hours>>;

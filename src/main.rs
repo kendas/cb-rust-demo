@@ -2,9 +2,18 @@ use std::sync::Mutex;
 
 use actix_files::Files;
 use actix_web::{http::header, web, web::Data, App, HttpResponse, HttpServer};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 use uuid::Uuid;
+
+#[derive(Debug, Deserialize)]
+struct NewHours {
+    employee: String,
+    project: String,
+    story_id: Option<String>,
+    description: String,
+    hours: i16,
+}
 
 #[derive(Debug, Serialize)]
 struct Hours {
@@ -14,6 +23,19 @@ struct Hours {
     story_id: Option<String>,
     description: String,
     hours: i16,
+}
+
+impl Hours {
+    fn new(new_hours: NewHours) -> Hours {
+        return Hours {
+            id: Uuid::new_v4(),
+            employee: new_hours.employee,
+            project: new_hours.project,
+            story_id: new_hours.story_id,
+            description: new_hours.description,
+            hours: new_hours.hours,
+        };
+    }
 }
 
 async fn db_test(db: Data<Db>) -> HttpResponse {
@@ -38,6 +60,15 @@ async fn list_all_logged_hours(db: Data<Db>) -> HttpResponse {
         .json2(hours);
 }
 
+async fn log_hours(db: Data<Db>, json: web::Json<NewHours>) -> HttpResponse {
+    let mut guard = db.lock().unwrap();
+    let new_hours = json.into_inner();
+    let hours = Hours::new(new_hours);
+    let id = hours.id;
+    guard.push(hours);
+    return HttpResponse::Created().body(id.to_string());
+}
+
 type Db = Mutex<Vec<Hours>>;
 
 #[actix_web::main]
@@ -50,7 +81,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(db.clone())
             .route("/", web::get().to(db_test))
-            .service(web::scope("/api").route("/hours", web::get().to(list_all_logged_hours)))
+            .service(
+                web::scope("/api")
+                    .route("/hours", web::get().to(list_all_logged_hours))
+                    .route("/hours", web::post().to(log_hours)),
+            )
             .service(Files::new("/openapi", "./openapi/").show_files_listing())
     })
     .bind(bind_address)?

@@ -3,7 +3,6 @@ use std::sync::Mutex;
 use actix_files::Files;
 use actix_web::{http::header, web, web::Data, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -54,18 +53,30 @@ async fn db_test(db: Data<Db>) -> HttpResponse {
 
 async fn list_all_logged_hours(db: Data<Db>) -> HttpResponse {
     let guard = db.lock().unwrap();
-    let hours = guard.deref();
+    let all_hours = &*guard;
     return HttpResponse::Ok()
         .header(header::CONTENT_TYPE, "application/json")
-        .json2(hours);
+        .json(all_hours);
+}
+
+async fn get_single_hours_entry(
+    web::Path(id): web::Path<uuid::Uuid>,
+    db: Data<Db>,
+) -> HttpResponse {
+    let guard = db.lock().unwrap();
+    let result = guard.iter().find(|&h| h.id == id);
+    if let Some(hours) = result {
+        return HttpResponse::Ok().json(hours);
+    }
+    return HttpResponse::NotFound().body(id.to_string());
 }
 
 async fn log_hours(db: Data<Db>, json: web::Json<NewHours>) -> HttpResponse {
     let mut guard = db.lock().unwrap();
     let new_hours = json.into_inner();
-    let hours = Hours::new(new_hours);
-    let id = hours.id;
-    guard.push(hours);
+    let hours_entry = Hours::new(new_hours);
+    let id = hours_entry.id;
+    guard.push(hours_entry);
     return HttpResponse::Created().body(id.to_string());
 }
 
@@ -84,7 +95,8 @@ async fn main() -> std::io::Result<()> {
             .service(
                 web::scope("/api")
                     .route("/hours", web::get().to(list_all_logged_hours))
-                    .route("/hours", web::post().to(log_hours)),
+                    .route("/hours", web::post().to(log_hours))
+                    .route("/hours/{id}", web::get().to(get_single_hours_entry)),
             )
             .service(Files::new("/openapi", "./openapi/").show_files_listing())
     })

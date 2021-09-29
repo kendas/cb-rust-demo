@@ -80,6 +80,16 @@ async fn log_hours(db: Data<Db>, json: web::Json<NewHours>) -> HttpResponse {
     return HttpResponse::Created().body(id.to_string());
 }
 
+async fn delete_logged_hours(web::Path(id): web::Path<uuid::Uuid>, db: Data<Db>) -> HttpResponse {
+    let mut guard = db.lock().unwrap();
+    let result = guard.iter().position(|h| h.id == id);
+    if let Some(hours_index) = result {
+        guard.remove(hours_index);
+        return HttpResponse::NoContent().finish();
+    }
+    return HttpResponse::NotFound().body(id.to_string());
+}
+
 type Db = Mutex<Vec<Hours>>;
 
 #[actix_web::main]
@@ -96,7 +106,8 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api")
                     .route("/hours", web::get().to(list_all_logged_hours))
                     .route("/hours", web::post().to(log_hours))
-                    .route("/hours/{id}", web::get().to(get_single_hours_entry)),
+                    .route("/hours/{id}", web::get().to(get_single_hours_entry))
+                    .route("/hours/{id}", web::delete().to(delete_logged_hours)),
             )
             .service(Files::new("/openapi", "./openapi/").show_files_listing())
     })

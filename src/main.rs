@@ -106,10 +106,16 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(db_test))
             .service(
                 web::scope("/api")
-                    .route("/hours", web::get().to(list_all_logged_hours))
-                    .route("/hours", web::post().to(log_hours))
-                    .route("/hours/{id}", web::get().to(get_single_hours_entry))
-                    .route("/hours/{id}", web::delete().to(delete_logged_hours)),
+                    .service(
+                        web::resource("/hours")
+                            .route(web::get().to(list_all_logged_hours))
+                            .route(web::post().to(log_hours)),
+                    )
+                    .service(
+                        web::resource("/hours/{id}")
+                            .route(web::get().to(get_single_hours_entry))
+                            .route(web::delete().to(delete_logged_hours)),
+                    ),
             )
             .service(Files::new("/openapi", "./openapi/").show_files_listing())
     })

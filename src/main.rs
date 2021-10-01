@@ -37,18 +37,10 @@ impl Hours {
     }
 }
 
-async fn db_test(db: Data<MemDb>) -> HttpResponse {
-    let mut guard = db.lock().unwrap();
-    guard.push(Hours {
-        id: Uuid::new_v4(),
-        employee: "".into(),
-        project: "".into(),
-        story_id: None,
-        description: "".into(),
-        hours: 0,
-    });
-    let response_body = format!("Welcome, the database contains {:?}", guard);
-    return HttpResponse::Ok().body(response_body);
+async fn redirect_to_api_doc() -> HttpResponse {
+    return HttpResponse::TemporaryRedirect()
+        .header(header::LOCATION, "/openapi/index.html")
+        .finish();
 }
 
 async fn list_all_logged_hours<T: HoursRepo>(db: Data<T>) -> HttpResponse {
@@ -135,7 +127,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(db.clone())
-            .route("/", web::get().to(db_test))
+            .route("/", web::get().to(redirect_to_api_doc))
             .service(
                 web::scope("/api")
                     .service(

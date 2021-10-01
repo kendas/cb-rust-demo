@@ -141,7 +141,7 @@ async fn main() -> std::io::Result<()> {
                             .route(web::delete().to(delete_logged_hours::<MemDb>)),
                     ),
             )
-            .service(Files::new("/openapi", "./openapi/").show_files_listing())
+            .service(Files::new("/openapi", "./openapi/").index_file("index.html"))
     })
     .bind(bind_address)?
     .run()

@@ -14,7 +14,7 @@ struct NewHours {
     hours: i16,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 struct Hours {
     id: Uuid,
     employee: String,
@@ -37,7 +37,7 @@ impl Hours {
     }
 }
 
-async fn db_test(db: Data<Db>) -> HttpResponse {
+async fn db_test(db: Data<MemDb>) -> HttpResponse {
     let mut guard = db.lock().unwrap();
     guard.push(Hours {
         id: Uuid::new_v4(),
@@ -51,52 +51,84 @@ async fn db_test(db: Data<Db>) -> HttpResponse {
     return HttpResponse::Ok().body(response_body);
 }
 
-async fn list_all_logged_hours(db: Data<Db>) -> HttpResponse {
-    let guard = db.lock().unwrap();
-    let all_hours = &*guard;
+async fn list_all_logged_hours<T: HoursRepo>(db: Data<T>) -> HttpResponse {
+    let all_hours = db.list();
     return HttpResponse::Ok()
         .header(header::CONTENT_TYPE, "application/json")
         .json(all_hours);
 }
 
-async fn get_single_hours_entry(
+async fn get_single_hours_entry<T: HoursRepo>(
     web::Path(id): web::Path<uuid::Uuid>,
-    db: Data<Db>,
+    db: Data<T>,
 ) -> HttpResponse {
-    let guard = db.lock().unwrap();
-    let result = guard.iter().find(|&h| h.id == id);
+    let result = db.by_id(id);
     match result {
         Some(hours) => HttpResponse::Ok().json(hours),
         None => HttpResponse::NotFound().body(id.to_string()),
     }
 }
 
-async fn log_hours(db: Data<Db>, json: web::Json<NewHours>) -> HttpResponse {
-    let mut guard = db.lock().unwrap();
+async fn log_hours<T: HoursRepo>(db: Data<T>, json: web::Json<NewHours>) -> HttpResponse {
     let new_hours = json.into_inner();
-    let hours_entry = Hours::new(new_hours);
+    let hours_entry = db.insert(new_hours);
     let id = hours_entry.id;
-    guard.push(hours_entry);
     return HttpResponse::Created().body(id.to_string());
 }
 
-async fn delete_logged_hours(web::Path(id): web::Path<uuid::Uuid>, db: Data<Db>) -> HttpResponse {
-    let mut guard = db.lock().unwrap();
-    let result = guard.iter().position(|h| h.id == id);
-    match result {
-        Some(hours_index) => {
-            guard.remove(hours_index);
-            return HttpResponse::NoContent().finish();
+async fn delete_logged_hours<T: HoursRepo>(
+    web::Path(id): web::Path<uuid::Uuid>,
+    db: Data<T>,
+) -> HttpResponse {
+    let ok = db.delete(id);
+    if !ok {
+        return HttpResponse::NotFound().body(id.to_string());
+    }
+    return HttpResponse::NoContent().finish();
+}
+
+trait HoursRepo {
+    fn by_id(&self, id: Uuid) -> Option<Hours>;
+    fn delete(&self, id: Uuid) -> bool;
+    fn list(&self) -> Vec<Hours>;
+    fn insert(&self, h: NewHours) -> Hours;
+}
+
+type MemDb = Mutex<Vec<Hours>>;
+
+impl HoursRepo for MemDb {
+    fn by_id(&self, id: uuid::Uuid) -> std::option::Option<Hours> {
+        let guard = self.lock().unwrap();
+        let result = guard.iter().find(|&h| h.id == id).map(|h| h.clone());
+        return result;
+    }
+    fn delete(&self, id: uuid::Uuid) -> bool {
+        let mut guard = self.lock().unwrap();
+        let result = guard.iter().position(|h| h.id == id);
+        match result {
+            Some(hours_index) => {
+                guard.remove(hours_index);
+                return true;
+            }
+            None => false,
         }
-        None => HttpResponse::NotFound().body(id.to_string()),
+    }
+    fn list(&self) -> std::vec::Vec<Hours> {
+        let guard = self.lock().unwrap();
+        let all_hours = &*guard;
+        return all_hours.to_vec();
+    }
+    fn insert(&self, h: NewHours) -> Hours {
+        let mut guard = self.lock().unwrap();
+        let hours_entry = Hours::new(h);
+        guard.push(hours_entry.clone());
+        return hours_entry;
     }
 }
 
-type Db = Mutex<Vec<Hours>>;
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let db: Data<Db> = Data::new(Default::default());
+    let db: Data<MemDb> = Data::new(Default::default());
 
     let port = std::env::var("PORT").unwrap_or("8080".to_string());
     let bind_address = format!("0.0.0.0:{}", port);
@@ -108,13 +140,13 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api")
                     .service(
                         web::resource("/hours")
-                            .route(web::get().to(list_all_logged_hours))
-                            .route(web::post().to(log_hours)),
+                            .route(web::get().to(list_all_logged_hours::<MemDb>))
+                            .route(web::post().to(log_hours::<MemDb>)),
                     )
                     .service(
                         web::resource("/hours/{id}")
-                            .route(web::get().to(get_single_hours_entry))
-                            .route(web::delete().to(delete_logged_hours)),
+                            .route(web::get().to(get_single_hours_entry::<MemDb>))
+                            .route(web::delete().to(delete_logged_hours::<MemDb>)),
                     ),
             )
             .service(Files::new("/openapi", "./openapi/").show_files_listing())

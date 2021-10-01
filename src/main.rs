@@ -39,7 +39,7 @@ impl Hours {
 
 async fn redirect_to_api_doc() -> HttpResponse {
     return HttpResponse::TemporaryRedirect()
-        .header(header::LOCATION, "/openapi/index.html")
+        .header(header::LOCATION, "/openapi/")
         .finish();
 }
 

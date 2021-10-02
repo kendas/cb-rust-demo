@@ -1,8 +1,10 @@
-use std::sync::Mutex;
-
 use actix_files::Files;
-use actix_web::{http::header, web, web::Data, App, HttpResponse, HttpServer};
+use actix_web::{dev::Server, http::header, web, web::Data, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
+use std::env;
+use std::io;
+use std::net::TcpListener;
+use std::sync::Mutex;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -79,7 +81,7 @@ async fn delete_logged_hours<T: HoursRepo>(
     return HttpResponse::NoContent().finish();
 }
 
-trait HoursRepo {
+trait HoursRepo: Send + Sync {
     fn by_id(&self, id: Uuid) -> Option<Hours>;
     fn delete(&self, id: Uuid) -> bool;
     fn list(&self) -> Vec<Hours>;
@@ -118,13 +120,9 @@ impl HoursRepo for MemDb {
     }
 }
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let db: Data<MemDb> = Data::new(Default::default());
-
-    let port = std::env::var("PORT").unwrap_or("8080".to_string());
-    let bind_address = format!("0.0.0.0:{}", port);
-    HttpServer::new(move || {
+fn run_server<T: HoursRepo + 'static>(hr: T, listener: TcpListener) -> io::Result<Server> {
+    let db = Data::new(hr);
+    let server = HttpServer::new(move || {
         App::new()
             .app_data(db.clone())
             .route("/", web::get().to(redirect_to_api_doc))
@@ -132,18 +130,29 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/api")
                     .service(
                         web::resource("/hours")
-                            .route(web::get().to(list_all_logged_hours::<MemDb>))
-                            .route(web::post().to(log_hours::<MemDb>)),
+                            .route(web::get().to(list_all_logged_hours::<T>))
+                            .route(web::post().to(log_hours::<T>)),
                     )
                     .service(
                         web::resource("/hours/{id}")
-                            .route(web::get().to(get_single_hours_entry::<MemDb>))
-                            .route(web::delete().to(delete_logged_hours::<MemDb>)),
+                            .route(web::get().to(get_single_hours_entry::<T>))
+                            .route(web::delete().to(delete_logged_hours::<T>)),
                     ),
             )
             .service(Files::new("/openapi", "./openapi/").index_file("index.html"))
     })
-    .bind(bind_address)?
-    .run()
-    .await
+    .listen(listener)?
+    .run();
+    return Ok(server);
+}
+
+#[actix_web::main]
+async fn main() -> io::Result<()> {
+    let db: MemDb = Default::default();
+
+    let port = env::var("PORT").unwrap_or("8080".to_string());
+    let bind_address = format!("0.0.0.0:{}", port);
+    let listener = TcpListener::bind(bind_address)?;
+    let server = run_server(db, listener)?.await;
+    return server;
 }

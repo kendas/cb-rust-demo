@@ -148,11 +148,18 @@ fn run_server<T: HoursRepo + 'static>(hr: T, listener: TcpListener) -> io::Resul
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
+    init_logger();
+
     let db: MemDb = Default::default();
 
     let port = env::var("PORT").unwrap_or("8080".to_string());
     let bind_address = format!("0.0.0.0:{}", port);
     let listener = TcpListener::bind(bind_address)?;
-    let server = run_server(db, listener)?.await;
-    return server;
+    let server = run_server(db, listener)?;
+    return server.await;
+}
+
+fn init_logger() {
+    let logger_environment = env_logger::Env::default().default_filter_or("info");
+    env_logger::Builder::from_env(logger_environment).init();
 }

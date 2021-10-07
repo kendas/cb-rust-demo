@@ -3,14 +3,14 @@ use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct NewHours {
-    employee: String,
-    project: String,
-    story_id: Option<String>,
-    description: String,
-    hours: i16,
+    pub employee: String,
+    pub project: String,
+    pub story_id: Option<String>,
+    pub description: String,
+    pub hours: i16,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 pub struct Hours {
     pub id: Uuid,
     pub employee: String,

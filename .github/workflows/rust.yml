@@ -120,8 +120,6 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-        with:
-          sharedKey: build
 
       - uses: Swatinem/rust-cache@v1
         with:

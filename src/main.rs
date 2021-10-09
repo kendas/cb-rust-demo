@@ -2,7 +2,7 @@ use std::env;
 use std::io;
 use std::net::TcpListener;
 
-use cb_rust_demo::MemDb;
+use cb_rust_demo::db::MemDb;
 
 fn init_logger() {
     let logger_environment = env_logger::Env::default().default_filter_or("info");

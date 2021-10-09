@@ -12,16 +12,16 @@ mod db;
 mod hours;
 
 async fn redirect_to_api_doc() -> HttpResponse {
-    return HttpResponse::TemporaryRedirect()
+    HttpResponse::TemporaryRedirect()
         .header(header::LOCATION, "/openapi/")
-        .finish();
+        .finish()
 }
 
 async fn list_all_logged_hours<T: HoursRepo>(db: Data<T>) -> HttpResponse {
     let all_hours = db.list();
-    return HttpResponse::Ok()
+    HttpResponse::Ok()
         .header(header::CONTENT_TYPE, "application/json")
-        .json(all_hours);
+        .json(all_hours)
 }
 
 async fn get_single_hours_entry<T: HoursRepo>(

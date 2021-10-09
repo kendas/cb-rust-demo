@@ -117,6 +117,7 @@
         "type": "object",
         "required": [
           "employee",
+          "date",
           "project",
           "description",
           "hours"
@@ -124,6 +125,10 @@
         "properties": {
           "employee": {
             "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
           },
           "project": {
             "type": "string"
@@ -148,6 +153,10 @@
           },
           "employee": {
             "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
           },
           "project": {
             "type": "string"

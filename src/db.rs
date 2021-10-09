@@ -47,6 +47,7 @@ impl HoursRepo for MemDb {
 
 #[cfg(test)]
 mod tests {
+    use chrono::NaiveDate;
     use uuid::Uuid;
 
     use super::*;
@@ -64,13 +65,7 @@ mod tests {
     #[test]
     fn by_id_exists() {
         let db: MemDb = Default::default();
-        let hours = db.insert(NewHours {
-            employee: "employee".to_owned(),
-            project: "project".to_owned(),
-            story_id: None,
-            description: "description".to_owned(),
-            hours: 1,
-        });
+        let hours = db.insert(get_hours());
 
         match db.by_id(hours.id) {
             Some(result) => assert_eq!(result, hours),
@@ -81,13 +76,7 @@ mod tests {
     #[test]
     fn by_id_db_not_empty_invalid_key() {
         let db: MemDb = Default::default();
-        db.insert(NewHours {
-            employee: "employee".to_owned(),
-            project: "project".to_owned(),
-            story_id: None,
-            description: "description".to_owned(),
-            hours: 1,
-        });
+        db.insert(get_hours());
 
         let result = db.by_id(Uuid::new_v4());
 
@@ -100,23 +89,17 @@ mod tests {
 
         let result = db.delete(Uuid::new_v4());
 
-        assert_eq!(result, false);
+        assert!(!result);
     }
 
     #[test]
     fn delete_db_not_empty() {
         let db: MemDb = Default::default();
-        let hours = db.insert(NewHours {
-            employee: "employee".to_owned(),
-            project: "project".to_owned(),
-            story_id: None,
-            description: "description".to_owned(),
-            hours: 1,
-        });
+        let hours = db.insert(get_hours());
 
         let result = db.delete(hours.id);
 
-        assert_eq!(result, true);
+        assert!(result);
 
         assert!(db.by_id(hours.id).is_none());
     }
@@ -124,17 +107,11 @@ mod tests {
     #[test]
     fn delete_db_not_empty_invalid_key() {
         let db: MemDb = Default::default();
-        let hours = db.insert(NewHours {
-            employee: "employee".to_owned(),
-            project: "project".to_owned(),
-            story_id: None,
-            description: "description".to_owned(),
-            hours: 1,
-        });
+        let hours = db.insert(get_hours());
 
         let result = db.delete(Uuid::new_v4());
 
-        assert_eq!(result, false);
+        assert!(!result);
 
         match db.by_id(hours.id) {
             Some(stored) => assert_eq!(stored, hours),
@@ -154,16 +131,21 @@ mod tests {
     #[test]
     fn list_db_not_empty() {
         let db: MemDb = Default::default();
-        let hours = db.insert(NewHours {
-            employee: "employee".to_owned(),
-            project: "project".to_owned(),
-            story_id: None,
-            description: "description".to_owned(),
-            hours: 1,
-        });
+        let hours = db.insert(get_hours());
 
         let result = db.list();
 
         assert_eq!(result, vec![hours]);
+    }
+
+    fn get_hours() -> NewHours {
+        NewHours {
+            employee: "employee".to_owned(),
+            date: NaiveDate::from_ymd(2021, 10, 9),
+            project: "project".to_owned(),
+            story_id: None,
+            description: "description".to_owned(),
+            hours: 1,
+        }
     }
 }

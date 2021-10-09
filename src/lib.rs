@@ -39,7 +39,7 @@ async fn log_hours<T: HoursRepo>(db: Data<T>, json: web::Json<NewHours>) -> Http
     let new_hours = json.into_inner();
     let hours_entry = db.insert(new_hours);
     let id = hours_entry.id;
-    return HttpResponse::Created().body(id.to_string());
+    HttpResponse::Created().body(id.to_string())
 }
 
 async fn delete_logged_hours<T: HoursRepo>(
@@ -50,7 +50,7 @@ async fn delete_logged_hours<T: HoursRepo>(
     if !ok {
         return HttpResponse::NotFound().body(id.to_string());
     }
-    return HttpResponse::NoContent().finish();
+    HttpResponse::NoContent().finish()
 }
 
 pub fn run_server<T: HoursRepo + 'static>(hr: T, listener: TcpListener) -> io::Result<Server> {
@@ -76,5 +76,5 @@ pub fn run_server<T: HoursRepo + 'static>(hr: T, listener: TcpListener) -> io::R
     })
     .listen(listener)?
     .run();
-    return Ok(server);
+    Ok(server)
 }

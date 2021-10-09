@@ -16,7 +16,7 @@ pub trait HoursRepo: Send + Sync {
 impl HoursRepo for MemDb {
     fn by_id(&self, id: uuid::Uuid) -> Option<Hours> {
         let guard = self.lock().unwrap();
-        return guard.iter().find(|&h| h.id == id).map(|h| h.clone());
+        guard.iter().find(|&h| h.id == id).cloned()
     }
 
     fn delete(&self, id: uuid::Uuid) -> bool {
@@ -34,14 +34,14 @@ impl HoursRepo for MemDb {
     fn list(&self) -> std::vec::Vec<Hours> {
         let guard = self.lock().unwrap();
         let all_hours = &*guard;
-        return all_hours.to_vec();
+        all_hours.to_vec()
     }
 
     fn insert(&self, h: NewHours) -> Hours {
         let mut guard = self.lock().unwrap();
         let hours_entry = Hours::new(h);
         guard.push(hours_entry.clone());
-        return hours_entry;
+        hours_entry
     }
 }
 

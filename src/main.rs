@@ -15,9 +15,9 @@ async fn main() -> io::Result<()> {
 
     let db: MemDb = Default::default();
 
-    let port = env::var("PORT").unwrap_or("8080".to_string());
+    let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let bind_address = format!("0.0.0.0:{}", port);
     let listener = TcpListener::bind(bind_address)?;
     let server = cb_rust_demo::run_server(db, listener)?;
-    return server.await;
+    server.await
 }

@@ -22,13 +22,13 @@ pub struct Hours {
 
 impl Hours {
     pub fn new(new_hours: NewHours) -> Hours {
-        return Hours {
+        Hours {
             id: Uuid::new_v4(),
             employee: new_hours.employee,
             project: new_hours.project,
             story_id: new_hours.story_id,
             description: new_hours.description,
             hours: new_hours.hours,
-        };
+        }
     }
 }

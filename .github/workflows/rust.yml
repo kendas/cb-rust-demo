@@ -63,7 +63,7 @@ jobs:
     - name: Build and push to Heroku
       env:
         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-      run: heroku container:push -a cb-rust-demo web --arg="-f=Dockerfile.nobuild"
+      run: heroku container:push -a cb-rust-demo web
 
     - name: Release
       env:

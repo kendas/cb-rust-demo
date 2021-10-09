@@ -50,6 +50,10 @@ async fn delete_logged_hours<T: HoursRepo>(id: Path<Uuid>, db: Data<T>) -> HttpR
     }
 }
 
+async fn health_check() -> HttpResponse {
+    HttpResponse::Ok().finish()
+}
+
 pub fn run_server<T: HoursRepo + 'static>(hr: T, listener: TcpListener) -> io::Result<Server> {
     let db = Data::new(hr);
     let server = HttpServer::new(move || {
@@ -58,6 +62,7 @@ pub fn run_server<T: HoursRepo + 'static>(hr: T, listener: TcpListener) -> io::R
             .route("/", web::get().to(redirect_to_api_doc))
             .service(
                 web::scope("/api")
+                    .service(web::resource("/health_check").route(web::get().to(health_check)))
                     .service(
                         web::resource("/hours")
                             .route(web::get().to(list_all_logged_hours::<T>))

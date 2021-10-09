@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn by_id_exists() {
-        let db: MemDb = Default::default();
+        let db = MemDb::default();
         let hours = db.insert(get_hours());
 
         match db.by_id(hours.id) {
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn by_id_db_not_empty_invalid_key() {
-        let db: MemDb = Default::default();
+        let db = MemDb::default();
         db.insert(get_hours());
 
         let result = db.by_id(Uuid::new_v4());
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn delete_db_empty() {
-        let db: MemDb = Default::default();
+        let db = MemDb::default();
 
         let result = db.delete(Uuid::new_v4());
 
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn delete_db_not_empty() {
-        let db: MemDb = Default::default();
+        let db = MemDb::default();
         let hours = db.insert(get_hours());
 
         let result = db.delete(hours.id);
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn delete_db_not_empty_invalid_key() {
-        let db: MemDb = Default::default();
+        let db = MemDb::default();
         let hours = db.insert(get_hours());
 
         let result = db.delete(Uuid::new_v4());
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn list_db_empty() {
-        let db: MemDb = Default::default();
+        let db = MemDb::default();
 
         let result = db.list();
 
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn list_db_not_empty() {
-        let db: MemDb = Default::default();
+        let db = MemDb::default();
         let hours = db.insert(get_hours());
 
         let result = db.list();

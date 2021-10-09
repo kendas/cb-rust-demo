@@ -19,9 +19,7 @@ async fn redirect_to_api_doc() -> HttpResponse {
 
 async fn list_all_logged_hours<T: HoursRepo>(db: Data<T>) -> HttpResponse {
     let all_hours = db.list();
-    HttpResponse::Ok()
-        .header(header::CONTENT_TYPE, "application/json")
-        .json(all_hours)
+    HttpResponse::Ok().json(all_hours)
 }
 
 async fn get_single_hours_entry<T: HoursRepo>(
@@ -31,26 +29,24 @@ async fn get_single_hours_entry<T: HoursRepo>(
     let result = db.by_id(id);
     match result {
         Some(hours) => HttpResponse::Ok().json(hours),
-        None => HttpResponse::NotFound().body(id.to_string()),
+        None => HttpResponse::NotFound().json(id),
     }
 }
 
 async fn log_hours<T: HoursRepo>(db: Data<T>, json: web::Json<NewHours>) -> HttpResponse {
     let new_hours = json.into_inner();
     let hours_entry = db.insert(new_hours);
-    let id = hours_entry.id;
-    HttpResponse::Created().body(id.to_string())
+    HttpResponse::Created().json(hours_entry.id)
 }
 
 async fn delete_logged_hours<T: HoursRepo>(
     web::Path(id): web::Path<uuid::Uuid>,
     db: Data<T>,
 ) -> HttpResponse {
-    let ok = db.delete(id);
-    if !ok {
-        return HttpResponse::NotFound().body(id.to_string());
+    match db.delete(id) {
+        true => HttpResponse::NoContent().finish(),
+        false => HttpResponse::NotFound().json(id),
     }
-    HttpResponse::NoContent().finish()
 }
 
 pub fn run_server<T: HoursRepo + 'static>(hr: T, listener: TcpListener) -> io::Result<Server> {

@@ -25,6 +25,8 @@ jobs:
           override: true
 
       - uses: Swatinem/rust-cache@v1
+        with:
+          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
 
       - name: Run cargo check
         uses: actions-rs/cargo@v1
@@ -47,6 +49,8 @@ jobs:
           override: true
 
       - uses: Swatinem/rust-cache@v1
+        with:
+          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
@@ -76,6 +80,8 @@ jobs:
           override: true
 
       - uses: Swatinem/rust-cache@v1
+        with:
+          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -98,6 +104,8 @@ jobs:
           override: true
 
       - uses: Swatinem/rust-cache@v1
+        with:
+          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -112,6 +120,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+        with:
+          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
 
       - uses: Swatinem/rust-cache@v1
 

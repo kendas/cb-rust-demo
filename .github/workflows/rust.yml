@@ -124,6 +124,8 @@ jobs:
           sharedKey: build
 
       - uses: Swatinem/rust-cache@v1
+        with:
+          sharedKey: build
 
       - name: Login to Heroku Container registry
         env:

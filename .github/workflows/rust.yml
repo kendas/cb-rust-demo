@@ -26,7 +26,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1
         with:
-          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
+          sharedKey: build
 
       - name: Run cargo check
         uses: actions-rs/cargo@v1
@@ -50,7 +50,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1
         with:
-          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
+          sharedKey: build
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
@@ -81,7 +81,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1
         with:
-          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
+          sharedKey: build
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -105,7 +105,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1
         with:
-          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
+          sharedKey: build
 
       - name: Run cargo build
         uses: actions-rs/cargo@v1
@@ -121,7 +121,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with:
-          sharedKey: ${{ runner.os }}-buildx-${{ hashFiles('Cargo.*') }}
+          sharedKey: build
 
       - uses: Swatinem/rust-cache@v1
 

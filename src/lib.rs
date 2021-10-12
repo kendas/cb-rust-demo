@@ -15,6 +15,7 @@ use hours::NewHours;
 
 pub mod db;
 mod hours;
+pub mod configuration;
 
 async fn redirect_to_api_doc() -> HttpResponse {
     HttpResponse::TemporaryRedirect()

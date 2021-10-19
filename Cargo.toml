@@ -18,6 +18,8 @@ log = "0.4.14"
 env_logger = "0.9.0"
 chrono = { version = "0.4", features = ["serde"] }
 config = "0.11"
+sqlx = { version = "0.5", features = ["runtime-actix-rustls", "macros", "postgres", "uuid", "chrono", "migrate"] }
+async-trait = "0.1.51"
 
 [dev-dependencies]
 actix-rt = "2.2.0"

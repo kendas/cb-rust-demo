@@ -5,7 +5,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use uuid::Uuid;
 
-use cb_rust_demo::db;
+use cb_rust_demo::test_utils;
 
 const HOURS: &str = "{\
     \"employee\": \"employee\",
@@ -29,7 +29,7 @@ struct Hours {
 
 #[actix_rt::test]
 async fn hours_from_empty_db() {
-    let address = spawn_app();
+    let address = spawn_app().await;
 
     let client = Client::new();
 
@@ -45,7 +45,7 @@ async fn hours_from_empty_db() {
 
 #[actix_rt::test]
 async fn hours_insert_and_retrieve() {
-    let address = spawn_app();
+    let address = spawn_app().await;
 
     let client = Client::new();
 
@@ -58,7 +58,7 @@ async fn hours_insert_and_retrieve() {
         .expect("Failed to execute request.");
 
     assert!(response.status().is_success());
-    let id: Uuid = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let Hours { id, .. } = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     let response = client
         .get(format!("{}/api/hours/{}", address, id))
@@ -74,7 +74,7 @@ async fn hours_insert_and_retrieve() {
 
 #[actix_rt::test]
 async fn hours_insert_and_retrieve_list() {
-    let address = spawn_app();
+    let address = spawn_app().await;
 
     let client = Client::new();
 
@@ -87,7 +87,7 @@ async fn hours_insert_and_retrieve_list() {
         .expect("Failed to execute request.");
 
     assert!(response.status().is_success());
-    let id: Uuid = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let Hours { id, .. } = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     let response = client
         .get(format!("{}/api/hours", address))
@@ -103,7 +103,7 @@ async fn hours_insert_and_retrieve_list() {
 
 #[actix_rt::test]
 async fn hours_insert_and_delete() {
-    let address = spawn_app();
+    let address = spawn_app().await;
 
     let client = Client::new();
     let response = client
@@ -115,7 +115,7 @@ async fn hours_insert_and_delete() {
         .expect("Failed to execute request.");
 
     assert!(response.status().is_success());
-    let id: Uuid = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let Hours { id, .. } = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     let response = client
         .delete(format!("{}/api/hours/{}", address, id))
@@ -136,11 +136,11 @@ async fn hours_insert_and_delete() {
     assert!(result.is_empty());
 }
 
-fn spawn_app() -> String {
+async fn spawn_app() -> String {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Port not open");
     let port = listener.local_addr().unwrap().port();
-    let server =
-        cb_rust_demo::run_server(db::MemDb::default(), listener).expect("Server failed to start");
+    let server = cb_rust_demo::run_server(test_utils::get_db_pool().await, listener)
+        .expect("Server failed to start");
     tokio::spawn(server);
     format!("http://127.0.0.1:{}", port)
 }

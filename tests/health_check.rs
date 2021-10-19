@@ -3,11 +3,11 @@ use std::net::TcpListener;
 
 use reqwest::Client;
 
-use cb_rust_demo::db;
+use cb_rust_demo::test_utils;
 
 #[actix_rt::test]
 async fn health_check_works() {
-    let address = spawn_app();
+    let address = spawn_app().await;
 
     let client = Client::new();
 
@@ -21,11 +21,11 @@ async fn health_check_works() {
     assert_eq!(response.content_length(), Some(0))
 }
 
-fn spawn_app() -> String {
+async fn spawn_app() -> String {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Port not open");
     let port = listener.local_addr().unwrap().port();
-    let server =
-        cb_rust_demo::run_server(db::MemDb::default(), listener).expect("Server failed to start");
+    let server = cb_rust_demo::run_server(test_utils::get_db_pool().await, listener)
+        .expect("Server failed to start");
     tokio::spawn(server);
     format!("http://127.0.0.1:{}", port)
 }

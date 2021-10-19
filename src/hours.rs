@@ -1,5 +1,9 @@
+use std::convert::TryFrom;
+
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgRow;
+use sqlx::Row;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -34,5 +38,21 @@ impl Hours {
             description: new_hours.description,
             hours: new_hours.hours,
         }
+    }
+}
+
+impl TryFrom<PgRow> for Hours {
+    type Error = sqlx::Error;
+
+    fn try_from(value: PgRow) -> Result<Self, Self::Error> {
+        Ok(Hours {
+            id: value.try_get("id")?,
+            employee: value.try_get("employee")?,
+            date: value.try_get("date")?,
+            project: value.try_get("project")?,
+            story_id: value.try_get("story_id")?,
+            description: value.try_get("description")?,
+            hours: value.try_get("hours")?,
+        })
     }
 }

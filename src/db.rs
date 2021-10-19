@@ -1,139 +1,164 @@
-use std::sync::Mutex;
+use std::convert::TryFrom;
 
+use async_trait::async_trait;
+use sqlx::pool::PoolConnection;
+use sqlx::{PgConnection, Postgres};
 use uuid::Uuid;
 
 use crate::hours::{Hours, NewHours};
 
-pub type MemDb = Mutex<Vec<Hours>>;
+pub struct HoursRepository<'a>(&'a mut PgConnection);
 
-pub trait HoursRepo: Send + Sync {
-    fn by_id(&self, id: Uuid) -> Option<Hours>;
-    fn delete(&self, id: Uuid) -> bool;
-    fn list(&self) -> Vec<Hours>;
-    fn insert(&self, h: NewHours) -> Hours;
+#[async_trait]
+pub trait HoursRepo {
+    async fn by_id(&mut self, id: Uuid) -> Option<Hours>;
+    async fn list(&mut self) -> Vec<Hours>;
+    async fn insert(&mut self, h: NewHours) -> Hours;
+    async fn delete(&mut self, id: Uuid) -> bool;
 }
 
-impl HoursRepo for MemDb {
-    fn by_id(&self, id: uuid::Uuid) -> Option<Hours> {
-        let guard = self.lock().unwrap();
-        guard.iter().find(|&h| h.id == id).cloned()
+#[async_trait]
+impl HoursRepo for PoolConnection<Postgres> {
+    async fn by_id(&mut self, id: Uuid) -> Option<Hours> {
+        sqlx::query("SELECT * FROM hours WHERE id = $1")
+            .bind(id)
+            .map(|row| Hours::try_from(row).unwrap())
+            .fetch_optional(self)
+            .await
+            .unwrap()
     }
 
-    fn delete(&self, id: uuid::Uuid) -> bool {
-        let mut guard = self.lock().unwrap();
-        guard
-            .iter()
-            .position(|h| h.id == id)
-            .map(|pos| {
-                guard.remove(pos);
-                true
-            })
-            .unwrap_or(false)
+    async fn list(&mut self) -> Vec<Hours> {
+        sqlx::query("SELECT * FROM hours")
+            .map(|row| Hours::try_from(row).unwrap())
+            .fetch_all(self)
+            .await
+            .unwrap()
     }
 
-    fn list(&self) -> std::vec::Vec<Hours> {
-        let guard = self.lock().unwrap();
-        let all_hours = &*guard;
-        all_hours.to_vec()
+    async fn insert(&mut self, h: NewHours) -> Hours {
+        let hours = Hours::new(h);
+        let sql = "INSERT INTO hours (id, employee, date, project, story_id, description, hours)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)";
+        sqlx::query(sql)
+            .bind(hours.id)
+            .bind(hours.employee.clone())
+            .bind(hours.date)
+            .bind(hours.project.clone())
+            .bind(hours.story_id.clone())
+            .bind(hours.description.clone())
+            .bind(hours.hours)
+            .execute(self)
+            .await
+            .unwrap();
+        hours
     }
 
-    fn insert(&self, h: NewHours) -> Hours {
-        let mut guard = self.lock().unwrap();
-        let hours_entry = Hours::new(h);
-        guard.push(hours_entry.clone());
-        hours_entry
+    async fn delete(&mut self, id: Uuid) -> bool {
+        sqlx::query("DELETE FROM hours WHERE id = $1 RETURNING 1")
+            .bind(id)
+            .fetch_optional(self)
+            .await
+            .unwrap()
+            .is_some()
     }
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use chrono::NaiveDate;
     use uuid::Uuid;
 
     use super::*;
     use crate::hours::NewHours;
+    use crate::test_utils;
 
-    #[test]
-    fn by_id_when_db_is_empty() {
-        let db: MemDb = Default::default();
+    #[actix_rt::test]
+    async fn by_id_when_db_is_empty() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        let result = db.by_id(Uuid::new_v4());
+        let result = db.by_id(Uuid::new_v4()).await;
 
         assert!(result.is_none());
     }
 
-    #[test]
-    fn by_id_exists() {
-        let db = MemDb::default();
-        let hours = db.insert(get_hours());
+    #[actix_rt::test]
+    async fn by_id_exists() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        match db.by_id(hours.id) {
+        let hours = db.insert(get_hours()).await;
+
+        match db.by_id(hours.id).await {
             Some(result) => assert_eq!(result, hours),
             None => panic!("Expected hours to be returned."),
         }
     }
 
-    #[test]
-    fn by_id_db_not_empty_invalid_key() {
-        let db = MemDb::default();
-        db.insert(get_hours());
+    #[actix_rt::test]
+    async fn by_id_db_not_empty_invalid_key() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        let result = db.by_id(Uuid::new_v4());
+        db.insert(get_hours()).await;
+
+        let result = db.by_id(Uuid::new_v4()).await;
 
         assert!(result.is_none());
     }
 
-    #[test]
-    fn delete_db_empty() {
-        let db = MemDb::default();
+    #[actix_rt::test]
+    async fn delete_db_empty() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        let result = db.delete(Uuid::new_v4());
+        let result = db.delete(Uuid::new_v4()).await;
 
         assert!(!result);
     }
 
-    #[test]
-    fn delete_db_not_empty() {
-        let db = MemDb::default();
-        let hours = db.insert(get_hours());
+    #[actix_rt::test]
+    async fn delete_db_not_empty() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        let result = db.delete(hours.id);
+        let hours = db.insert(get_hours()).await;
+
+        let result = db.delete(hours.id).await;
 
         assert!(result);
 
-        assert!(db.by_id(hours.id).is_none());
+        assert!(db.by_id(hours.id).await.is_none());
     }
 
-    #[test]
-    fn delete_db_not_empty_invalid_key() {
-        let db = MemDb::default();
-        let hours = db.insert(get_hours());
+    #[actix_rt::test]
+    async fn delete_db_not_empty_invalid_key() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        let result = db.delete(Uuid::new_v4());
+        let hours = db.insert(get_hours()).await;
+
+        let result = db.delete(Uuid::new_v4()).await;
 
         assert!(!result);
 
-        match db.by_id(hours.id) {
+        match db.by_id(hours.id).await {
             Some(stored) => assert_eq!(stored, hours),
             None => panic!("Expected hours to still be stored."),
         }
     }
 
-    #[test]
-    fn list_db_empty() {
-        let db = MemDb::default();
+    #[actix_rt::test]
+    async fn list_db_empty() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        let result = db.list();
+        let result = db.list().await;
 
         assert_eq!(result, vec![]);
     }
 
-    #[test]
-    fn list_db_not_empty() {
-        let db = MemDb::default();
-        let hours = db.insert(get_hours());
+    #[actix_rt::test]
+    async fn list_db_not_empty() {
+        let mut db = test_utils::internal::get_db_connection().await;
 
-        let result = db.list();
+        let hours = db.insert(get_hours()).await;
+
+        let result = db.list().await;
 
         assert_eq!(result, vec![hours]);
     }

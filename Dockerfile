@@ -1,8 +1,6 @@
-FROM rust:alpine AS build
+FROM rust:slim AS build
 
 WORKDIR /app
-
-RUN apk add --no-cache musl-dev
 
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
@@ -11,7 +9,7 @@ COPY ./migrations ./migrations
 
 RUN cargo build --release
 
-FROM alpine
+FROM debian:stable-slim
 
 RUN mkdir /app
 COPY ./openapi /app/openapi/

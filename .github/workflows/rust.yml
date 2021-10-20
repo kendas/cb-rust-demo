@@ -12,6 +12,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: rust:alpine
 
     services:
       postgres:
@@ -23,19 +24,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+      - name: Install musl-dev for compilation
+        run: apk add musl-dev
 
       - uses: Swatinem/rust-cache@v1
 
@@ -68,6 +63,10 @@ jobs:
         with:
           command: build
           args: --release --all-features
+
+      # We are running in the same container so dependency versions should not be an issue
+      - name: Ensure downloaded dependencies get transferred to the container
+        run: echo '!target' >> .dockerignore
 
       - name: Login to Heroku Container registry
         env:

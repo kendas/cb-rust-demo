@@ -2,4 +2,3 @@ target
 .idea
 .git
 .vscode
-!target/release/cb-rust-demo

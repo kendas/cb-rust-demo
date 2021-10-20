@@ -12,7 +12,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: rust:alpine
+    container: alpine
 
     services:
       postgres:
@@ -31,6 +31,13 @@ jobs:
 
       - name: Install musl-dev for compilation
         run: apk add musl-dev
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
       - uses: Swatinem/rust-cache@v1
 

@@ -12,7 +12,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: debian:stable
+    container: alpine
 
     services:
       postgres:
@@ -28,6 +28,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - name: Install dependencies for toolchain
+        run: apk add musl-dev curl
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1

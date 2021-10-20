@@ -11,10 +11,7 @@ pub async fn get_db_pool() -> Pool<Postgres> {
         .await
         .unwrap();
     connection
-        .execute(&*format!(
-            r#"CREATE DATABASE "{}";"#,
-            config.database.name
-        ))
+        .execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database.name))
         .await
         .unwrap();
     let pool = PgPool::connect(&config.database.connection_string())

@@ -5,7 +5,7 @@ use crate::configuration;
 
 pub async fn get_db_pool() -> Pool<Postgres> {
     let mut config = configuration::get_configuration().unwrap();
-    config.database.database_name = Uuid::new_v4().to_string();
+    config.database.name = Uuid::new_v4().to_string();
     let config = config;
     let mut connection = PgConnection::connect(&config.database.connection_string_without_db())
         .await
@@ -13,7 +13,7 @@ pub async fn get_db_pool() -> Pool<Postgres> {
     connection
         .execute(&*format!(
             r#"CREATE DATABASE "{}";"#,
-            config.database.database_name
+            config.database.name
         ))
         .await
         .unwrap();

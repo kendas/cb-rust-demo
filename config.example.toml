@@ -6,7 +6,7 @@ username = 'postgres'
 password = 'postgres'
 port = 5432
 host = 'localhost'
-database_name = 'postgres'
+name = 'postgres'
 
 [logging]
 level = 'info'  # default

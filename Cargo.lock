@@ -388,6 +388,7 @@ dependencies = [
  "config",
  "env_logger",
  "log",
+ "regex",
  "reqwest",
  "serde 1.0.130",
  "serde_json",

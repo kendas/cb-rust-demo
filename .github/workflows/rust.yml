@@ -12,7 +12,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: rust:alpine
 
     services:
       postgres:
@@ -24,19 +23,18 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install dependencies for toolchain
-        run: apk add musl-dev curl openssl-dev
-
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.55.0
+          toolchain: stable
           override: true
           components: rustfmt, clippy
 
@@ -71,10 +69,6 @@ jobs:
         with:
           command: build
           args: --release --all-features
-
-      # We are running in the same container so dependency versions should not be an issue
-      - name: Ensure downloaded dependencies get transferred to the container
-        run: echo '!target' >> .dockerignore
 
       - name: Login to Heroku Container registry
         env:

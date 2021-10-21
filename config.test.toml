@@ -5,7 +5,7 @@ port = 8080     # default
 username = 'postgres'
 password = 'postgres'
 port = 5432
-host = 'localhost'
+host = 'postgres'
 name = 'postgres'
 
 [logging]

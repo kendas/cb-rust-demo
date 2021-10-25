@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 
+use crate::error::{FieldValidationError, Validated};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
@@ -16,7 +17,17 @@ pub struct NewHours {
     pub hours: i16,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+impl Validated for NewHours {
+    fn validate(&self) -> Result<(), Vec<FieldValidationError>> {
+        match self.hours {
+            0 => Err(vec![FieldValidationError::new("hours".to_owned(), "can not be zero".to_owned())]),
+            1..=24 => Ok(()),
+            _ => Err(vec![FieldValidationError::new("hours".to_owned(), "can not be larger than 24".to_owned())]),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Hours {
     pub id: Uuid,
     pub employee: String,

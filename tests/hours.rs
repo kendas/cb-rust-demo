@@ -1,20 +1,21 @@
 #![cfg(test)]
 use std::net::TcpListener;
 
+use cb_rust_demo::error::{ErrorResponse, FieldValidationError};
 use reqwest::Client;
 use serde::Deserialize;
 use uuid::Uuid;
 
 use cb_rust_demo::test_utils;
 
-const HOURS: &str = "{\
-    \"employee\": \"employee\",
-    \"date\": \"2021-10-09\",
-    \"project\": \"project\",
-    \"story_id\": null,
-    \"description\": \"description\",
-    \"hours\": 1
-}";
+const HOURS: &str = r#"{
+    "employee": "employee",
+    "date": "2021-10-09",
+    "project": "project",
+    "story_id": null,
+    "description": "description",
+    "hours": 1
+}"#;
 
 #[derive(Deserialize)]
 #[allow(dead_code)]
@@ -70,6 +71,44 @@ async fn hours_insert_and_retrieve() {
 
     let result: Hours = serde_json::from_str(&response.text().await.unwrap()).unwrap();
     assert_eq!(result.id, id);
+}
+
+#[actix_rt::test]
+async fn hours_insert_too_many_hours() {
+    let address = spawn_app().await;
+
+    let client = Client::new();
+
+    let response = client
+        .post(format!("{}/api/hours", address))
+        .body(
+            r#"{
+    "employee": "employee",
+    "date": "2021-10-09",
+    "project": "project",
+    "story_id": null,
+    "description": "description",
+    "hours": 100
+}"#,
+        )
+        .header("Content-Type", "application/json")
+        .send()
+        .await
+        .expect("Failed to execute request.");
+
+    assert_eq!(response.status().as_u16(), 400);
+    let result: ErrorResponse = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    assert_eq!(
+        result,
+        ErrorResponse::with_validation_errors(
+            "Validation errors".into(),
+            vec![FieldValidationError::new(
+                "hours".into(),
+                "can not be larger than 24".into()
+            )]
+        )
+    );
 }
 
 #[actix_rt::test]

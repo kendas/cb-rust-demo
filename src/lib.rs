@@ -11,11 +11,13 @@ use actix_web::{
 use sqlx::{migrate::MigrateError, PgPool};
 use uuid::Uuid;
 
+use crate::error::{ErrorResponse, Validated};
 use db::HoursRepo;
 use hours::NewHours;
 
 pub mod configuration;
 pub mod db;
+pub mod error;
 mod hours;
 pub mod test_utils;
 
@@ -41,10 +43,18 @@ async fn get_single_hours_entry(id: Path<Uuid>, db: Data<PgPool>) -> HttpRespons
 }
 
 async fn log_hours(db: Data<PgPool>, json: web::Json<NewHours>) -> HttpResponse {
-    let mut connection = db.acquire().await.unwrap();
     let new_hours = json.into_inner();
-    let hours_entry = connection.insert(new_hours).await;
-    HttpResponse::Created().json(hours_entry)
+    match new_hours.validate() {
+        Err(errors) => HttpResponse::BadRequest().json(ErrorResponse::with_validation_errors(
+            "Validation errors".into(),
+            errors,
+        )),
+        Ok(_) => {
+            let mut connection = db.acquire().await.unwrap();
+            let hours_entry = connection.insert(new_hours).await;
+            HttpResponse::Created().json(hours_entry)
+        }
+    }
 }
 
 async fn delete_logged_hours(id: Path<Uuid>, db: Data<PgPool>) -> HttpResponse {

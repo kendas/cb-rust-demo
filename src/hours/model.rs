@@ -20,9 +20,15 @@ pub struct NewHours {
 impl Validated for NewHours {
     fn validate(&self) -> Result<(), Vec<FieldValidationError>> {
         match self.hours {
-            0 => Err(vec![FieldValidationError::new("hours".to_owned(), "can not be zero".to_owned())]),
+            0 => Err(vec![FieldValidationError::new(
+                "hours".to_owned(),
+                "can not be zero".to_owned(),
+            )]),
             1..=24 => Ok(()),
-            _ => Err(vec![FieldValidationError::new("hours".to_owned(), "can not be larger than 24".to_owned())]),
+            _ => Err(vec![FieldValidationError::new(
+                "hours".to_owned(),
+                "can not be larger than 24".to_owned(),
+            )]),
         }
     }
 }

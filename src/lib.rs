@@ -5,15 +5,10 @@ use actix_files::Files;
 use actix_web::{
     dev::Server,
     http::header,
-    web::{self, Data, Path},
+    web::{self, Data},
     App, HttpResponse, HttpServer,
 };
 use sqlx::{migrate::MigrateError, PgPool};
-use uuid::Uuid;
-
-use crate::error::{ErrorResponse, Validated};
-use db::HoursRepo;
-use hours::NewHours;
 
 pub mod configuration;
 pub mod db;
@@ -25,45 +20,6 @@ async fn redirect_to_api_doc() -> HttpResponse {
     HttpResponse::TemporaryRedirect()
         .append_header((header::LOCATION, "/openapi/"))
         .finish()
-}
-
-async fn list_all_logged_hours(db: Data<PgPool>) -> HttpResponse {
-    let mut connection = db.acquire().await.unwrap();
-    let all_hours = connection.list().await;
-    HttpResponse::Ok().json(all_hours)
-}
-
-async fn get_single_hours_entry(id: Path<Uuid>, db: Data<PgPool>) -> HttpResponse {
-    let mut connection = db.acquire().await.unwrap();
-    let id = id.into_inner();
-    match connection.by_id(id).await {
-        Some(hours) => HttpResponse::Ok().json(hours),
-        None => HttpResponse::NotFound().json(id),
-    }
-}
-
-async fn log_hours(db: Data<PgPool>, json: web::Json<NewHours>) -> HttpResponse {
-    let new_hours = json.into_inner();
-    match new_hours.validate() {
-        Err(errors) => HttpResponse::BadRequest().json(ErrorResponse::with_validation_errors(
-            "Validation errors".into(),
-            errors,
-        )),
-        Ok(_) => {
-            let mut connection = db.acquire().await.unwrap();
-            let hours_entry = connection.insert(new_hours).await;
-            HttpResponse::Created().json(hours_entry)
-        }
-    }
-}
-
-async fn delete_logged_hours(id: Path<Uuid>, db: Data<PgPool>) -> HttpResponse {
-    let mut connection = db.acquire().await.unwrap();
-    let id = id.into_inner();
-    match connection.delete(id).await {
-        true => HttpResponse::NoContent().finish(),
-        false => HttpResponse::NotFound().json(id),
-    }
 }
 
 async fn health_check() -> HttpResponse {
@@ -86,13 +42,13 @@ pub fn run_server(pool: PgPool, listener: TcpListener) -> io::Result<Server> {
                     .service(web::resource("/health_check").route(web::get().to(health_check)))
                     .service(
                         web::resource("/hours")
-                            .route(web::get().to(list_all_logged_hours))
-                            .route(web::post().to(log_hours)),
+                            .route(web::get().to(hours::list_all_logged_hours))
+                            .route(web::post().to(hours::log_hours)),
                     )
                     .service(
                         web::resource("/hours/{id}")
-                            .route(web::get().to(get_single_hours_entry))
-                            .route(web::delete().to(delete_logged_hours)),
+                            .route(web::get().to(hours::get_single_hours_entry))
+                            .route(web::delete().to(hours::delete_logged_hours)),
                     ),
             )
             .service(Files::new("/openapi", "./openapi/").index_file("index.html"))
